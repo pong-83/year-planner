@@ -151,9 +151,15 @@ months.forEach((month, rowIndex) => {
 
     const title = document.createElement("div");
     title.className = "title";
-    const rawTitle = data[key]?.title || EMPTY_TEXT;
-    title.innerText = rawTitle;
-    title.style.color = data[key]?.title ? "#FFFFFF" : "#6E6E70";
+
+    // ✅ 안정화된 title 표시
+    if(data[key]?.title && data[key].title.trim() !== ""){
+        title.innerText = data[key].title;
+        title.style.color = "#FFFFFF";
+    } else {
+        title.innerText = EMPTY_TEXT;
+        title.style.color = "#6E6E70";
+    }
 
     const detail = document.createElement("div");
     detail.className = "detail";
@@ -167,7 +173,8 @@ months.forEach((month, rowIndex) => {
       const firstLine = textarea.value.split("\n")[0] || "";
       data[key] = { title:firstLine, detail:textarea.value };
       saveData(data);
-      if(firstLine){
+      // ✅ input 시 title 업데이트
+      if(firstLine && firstLine.trim() !== ""){
         title.innerText = firstLine;
         title.style.color = "#FFFFFF";
       } else {
@@ -184,7 +191,10 @@ months.forEach((month, rowIndex) => {
     card.addEventListener("click", () => {
       const isActive = card.classList.contains("active");
       document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
-      if(!isActive){ card.classList.add("active"); setTimeout(()=>autoResize(textarea),200);}
+      if(!isActive){ 
+        card.classList.add("active"); 
+        setTimeout(()=>autoResize(textarea),200);
+      }
     });
 
     grid.appendChild(card);
