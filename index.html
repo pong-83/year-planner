@@ -12,6 +12,7 @@ body {
   color: #fff;
   font-family: 'AppleSDGothicNeo', -apple-system, sans-serif;
 }
+
 .header { padding: 20px; font-size: 20px; font-weight: 800; }
 .container { padding: 20px; }
 
@@ -33,6 +34,7 @@ body {
 }
 
 .icon { font-size: 10px; opacity:0.9; }
+
 .month {
   font-size: 12px;
   color: #6E6E70;
@@ -45,17 +47,21 @@ body {
   border-top: 0.5px solid #6E6E70;
   padding-top: 6px;
   cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-.card.active { border-top: 0.5px solid #FFFFFF; }
-.card.core.active { border-top-color: #ff6b6b; }
-.card.growth.active { border-top-color: #4cd964; }
-.card.social.active { border-top-color: #5ac8fa; }
-.card.admin.active { border-top-color: #a0a0a0; }
+.card:hover:not(.active) {
+  border-top-color: #FFFFFF;
+}
+
+.card.active.core { border-top-color: #ff6b6b; }
+.card.active.growth { border-top-color: #4cd964; }
+.card.active.social { border-top-color: #5ac8fa; }
+.card.active.admin { border-top-color: #a0a0a0; }
 
 .title {
   font-size: 10px;
-  font-weight: 700;
+  transition: color 0.2s ease, font-weight 0.2s ease;
 }
 
 .detail {
@@ -106,9 +112,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const USER_ID = "test_user";
+const USER_ID = "test_user"; // 로그인 전 테스트용
 
-/* 데이터 */
+/* 데이터 로드/저장 */
 async function loadData() {
   const ref = doc(db, "users", USER_ID);
   const snap = await getDoc(ref);
@@ -119,7 +125,7 @@ async function saveData(data) {
   await setDoc(doc(db, "users", USER_ID), { data });
 }
 
-/* UI */
+/* UI 설정 */
 const months = ["Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."];
 const categories = ["Core","Social","Growth","Admin"];
 const icons = { Core:"🔥", Social:"👥", Growth:"🌱", Admin:"⚙️" };
@@ -135,17 +141,17 @@ function autoResize(el) {
 /* 실행 */
 loadData().then(data => {
 
+  // 빈칸 + 카테고리 헤더
   grid.appendChild(document.createElement("div"));
-
   categories.forEach(cat => {
     const el = document.createElement("div");
     el.className = "category";
-    el.innerHTML = `${icons[cat]} ${cat}`;
+    el.innerHTML = `<span class="icon">${icons[cat]}</span> ${cat}`;
     grid.appendChild(el);
   });
 
+  // 각 달 생성
   months.forEach((month, rowIndex) => {
-
     const m = document.createElement("div");
     m.className = "month";
     m.innerText = month;
@@ -153,30 +159,48 @@ loadData().then(data => {
 
     categories.forEach((cat, colIndex) => {
       const key = `${rowIndex}-${colIndex}`;
-
       const card = document.createElement("div");
       card.className = "card " + cat.toLowerCase();
 
       const title = document.createElement("div");
       title.className = "title";
 
-      title.innerText = data[key]?.title || EMPTY_TEXT;
+      // 초기 제목 스타일
+      const initFirst = data[key]?.title || "";
+      if(initFirst) {
+        title.innerText = initFirst;
+        title.style.color = "#FFFFFF";
+        title.style.fontWeight = "700";
+      } else {
+        title.innerText = EMPTY_TEXT;
+        title.style.color = "#6E6E70";
+        title.style.fontWeight = "300";
+      }
 
       const detail = document.createElement("div");
       detail.className = "detail";
 
       const textarea = document.createElement("textarea");
       textarea.value = data[key]?.detail || "";
+      setTimeout(() => autoResize(textarea), 0);
 
+      // input 이벤트
       textarea.addEventListener("input", () => {
         autoResize(textarea);
-
         const firstLine = textarea.value.split("\n")[0] || "";
         data[key] = { title:firstLine, detail:textarea.value };
-
         saveData(data);
 
-        title.innerText = firstLine || EMPTY_TEXT;
+        // 제목 스타일 업데이트
+        if(firstLine && firstLine.trim() !== "") {
+          title.innerText = firstLine;
+          title.style.color = "#FFFFFF";
+          title.style.fontWeight = "700";
+        } else {
+          title.innerText = EMPTY_TEXT;
+          title.style.color = "#6E6E70";
+          title.style.fontWeight = "300";
+        }
       });
 
       textarea.addEventListener("click", e => e.stopPropagation());
@@ -185,6 +209,7 @@ loadData().then(data => {
       card.appendChild(title);
       card.appendChild(detail);
 
+      // 클릭 시 활성화
       card.addEventListener("click", () => {
         const isActive = card.classList.contains("active");
         document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
