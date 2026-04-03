@@ -202,4 +202,27 @@ months.forEach((month, rowIndex) => {
 });
 </script>
 </body>
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBf-pfa3u9ckXJe_hYxI8wfpC8p3VGKs5k",
+    authDomain: "year-planner-2521a.firebaseapp.com",
+    projectId: "year-planner-2521a",
+    storageBucket: "year-planner-2521a.firebasestorage.app",
+    messagingSenderId: "972744143802",
+    appId: "1:972744143802:web:24f6083e95c77c3697a383",
+    measurementId: "G-TYH46JMSTM"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 </html>
