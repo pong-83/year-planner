@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,61 +8,80 @@
 
 <style>
 body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: 'AppleSDGothicNeo', -apple-system, sans-serif;
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: 'AppleSDGothicNeo', -apple-system, sans-serif;
 }
 
-.header { padding: 20px; font-size: 20px; font-weight: 800; }
-.container { padding: 20px; }
+/* 드래그 방지 */
+.header,
+.month,
+.category,
+.title {
+    user-select: none;
+}
+
+.header {
+    padding: 20px;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.container {
+    padding: 20px;
+}
 
 .grid {
-  display: grid;
-  grid-template-columns: 80px repeat(4, 1fr);
-  row-gap: 28px;
-  column-gap: 16px;
+    display: grid;
+    grid-template-columns: 80px repeat(4, 1fr);
+    row-gap: 28px;
+    column-gap: 16px;
 }
 
 .category {
-  border: 1px solid #A3AAAE;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-  font-size: 12px;
+    border: 1px solid #A3AAAE;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    font-size: 12px;
 }
 
-.icon { font-size: 10px; opacity:0.9; }
+.icon {
+    font-size: 10px;
+    opacity: 0.9;
+}
 
 .month {
-  font-size: 12px;
-  color: #6E6E70;
-  font-weight: 800;
-  display: flex;
-  align-items: flex-end;
+    font-size: 12px;
+    color: #6E6E70;
+    font-weight: 800;
+    display: flex;
+    align-items: flex-end;
 }
 
-/* 🔥 카드 인터랙션 */
+/* 카드 */
 .card {
-  border-top: 0.5px solid #6E6E70;
-  padding-top: 6px;
-  cursor: pointer;
-  transition: 
-    border-color 0.2s ease,
-    transform 0.15s ease,
-    opacity 0.2s ease;
+    border-top: 0.5px solid #6E6E70;
+    padding-top: 6px;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        transform 0.15s ease,
+        opacity 0.2s ease;
 }
 
 .card:hover:not(.active) {
-  border-top-color: #FFFFFF;
-  transform: translateY(-2px) scale(1.01);
-  opacity: 0.9;
+    border-top-color: #FFFFFF;
+    transform: translateY(-2px) scale(1.01);
+    opacity: 0.9;
 }
 
-.card:active {
-  transform: scale(0.97);
+/* 클릭 효과 (열린 카드 제외) */
+.card:active:not(.active) {
+    transform: scale(0.97);
 }
 
 .card.active.core { border-top-color: #ff6b6b; }
@@ -69,51 +89,58 @@ body {
 .card.active.social { border-top-color: #5ac8fa; }
 .card.active.admin { border-top-color: #a0a0a0; }
 
-/* 🔥 타이틀 */
+/* dim */
+.card.dimmed {
+    opacity: 0.55;
+}
+
+.card.dimmed .title {
+    color: #8A8A8A;
+}
+
+/* title */
 .title {
-  font-size: 10px;
-  transition: 
-    color 0.2s ease,
-    font-weight 0.2s ease,
-    transform 0.15s ease,
-    letter-spacing 0.15s ease;
-  user-select: none;
+    font-size: 10px;
+    transition: all 0.2s ease;
 }
 
 .card.active .title {
-  transform: translateY(-1px);
-  letter-spacing: 0.3px;
+    transform: translateY(-1px);
+    letter-spacing: 0.3px;
 }
 
-/* 🔥 카드 열림 애니메이션 */
+/* detail */
 .detail {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transform: translateY(-6px);
-  transition: 
-    max-height 0.35s ease,
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-6px);
+    transition: all 0.3s ease;
 }
 
 .card.active .detail {
-  max-height: 300px;
-  opacity: 1;
-  transform: translateY(0);
+    max-height: 300px;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* textarea */
 textarea {
-  width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #fff;
-  font-size: 10px;
-  resize: none;
-  padding: 4px 0;
-  line-height: 1.5;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 10px;
+    resize: none;
+    padding: 4px 0;
+    line-height: 1.5;
+}
+
+/* 현재 월 텍스트 강조 */
+.month.today {
+    color: #FFFFFF;
+    letter-spacing: 0.5px;
 }
 </style>
 </head>
@@ -122,7 +149,7 @@ textarea {
 
 <div class="header">. year planner</div>
 <div class="container">
-  <div class="grid" id="grid"></div>
+    <div class="grid" id="grid"></div>
 </div>
 
 <script type="module">
@@ -130,29 +157,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import { getFirestore, doc, setDoc, getDoc } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-/* Firebase */
 const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "year-planner-2521a.firebaseapp.com",
-  projectId: "year-planner-2521a",
+    apiKey: "AIzaSy...",
+    authDomain: "year-planner-2521a.firebaseapp.com",
+    projectId: "year-planner-2521a",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const USER_ID = "test_user";
 
-/* 데이터 */
 async function loadData() {
-  const ref = doc(db, "users", USER_ID);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data().data : {};
+    const ref = doc(db, "users", USER_ID);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data().data : {};
 }
 
 async function saveData(data) {
-  await setDoc(doc(db, "users", USER_ID), { data });
+    await setDoc(doc(db, "users", USER_ID), { data });
 }
 
-/* UI */
 const months = ["Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."];
 const categories = ["Core","Social","Growth","Admin"];
 const icons = { Core:"🔥", Social:"👥", Growth:"🌱", Admin:"⚙️" };
@@ -161,92 +185,111 @@ const EMPTY_TEXT = "Add plan";
 const grid = document.getElementById("grid");
 
 function autoResize(el) {
-  el.style.height = "auto";
-  el.style.height = el.scrollHeight + "px";
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
 }
 
-/* 실행 */
 loadData().then(data => {
 
-  grid.appendChild(document.createElement("div"));
+    grid.appendChild(document.createElement("div"));
 
-  categories.forEach(cat => {
-    const el = document.createElement("div");
-    el.className = "category";
-    el.innerHTML = `<span class="icon">${icons[cat]}</span> ${cat}`;
-    grid.appendChild(el);
-  });
-
-  months.forEach((month, rowIndex) => {
-    const m = document.createElement("div");
-    m.className = "month";
-    m.innerText = month;
-    grid.appendChild(m);
-
-    categories.forEach((cat, colIndex) => {
-      const key = `${rowIndex}-${colIndex}`;
-
-      const card = document.createElement("div");
-      card.className = "card " + cat.toLowerCase();
-
-      const title = document.createElement("div");
-      title.className = "title";
-
-      const initFirst = data[key]?.title || "";
-      if(initFirst){
-        title.innerText = initFirst;
-        title.style.color = "#FFFFFF";
-        title.style.fontWeight = "700";
-      } else {
-        title.innerText = EMPTY_TEXT;
-        title.style.color = "#6E6E70";
-        title.style.fontWeight = "300";
-      }
-
-      const detail = document.createElement("div");
-      detail.className = "detail";
-
-      const textarea = document.createElement("textarea");
-      textarea.value = data[key]?.detail || "";
-      setTimeout(() => autoResize(textarea), 0);
-
-      textarea.addEventListener("input", async () => {
-        autoResize(textarea);
-        const firstLine = textarea.value.split("\n")[0] || "";
-        data[key] = { title:firstLine, detail:textarea.value };
-
-        await saveData(data);
-
-        if(firstLine && firstLine.trim() !== ""){
-          title.innerText = firstLine;
-          title.style.color = "#FFFFFF";
-          title.style.fontWeight = "700";
-        } else {
-          title.innerText = EMPTY_TEXT;
-          title.style.color = "#6E6E70";
-          title.style.fontWeight = "300";
-        }
-      });
-
-      textarea.addEventListener("click", e => e.stopPropagation());
-
-      detail.appendChild(textarea);
-      card.appendChild(title);
-      card.appendChild(detail);
-
-      card.addEventListener("click", () => {
-        const isActive = card.classList.contains("active");
-        document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
-
-        if(!isActive){
-          card.classList.add("active");
-          setTimeout(()=>autoResize(textarea),100);
-        }
-      });
-
-      grid.appendChild(card);
+    categories.forEach(cat => {
+        const el = document.createElement("div");
+        el.className = "category";
+        el.innerHTML = `<span class="icon">${icons[cat]}</span> ${cat}`;
+        grid.appendChild(el);
     });
-  });
+
+    const currentMonth = new Date().getMonth();
+
+    months.forEach((month, rowIndex) => {
+
+        const m = document.createElement("div");
+        m.className = "month";
+        m.innerText = month;
+
+        if(rowIndex === currentMonth){
+            m.classList.add("today");
+        }
+
+        grid.appendChild(m);
+
+        categories.forEach((cat, colIndex) => {
+            const key = `${rowIndex}-${colIndex}`;
+
+            const card = document.createElement("div");
+            card.className = "card " + cat.toLowerCase();
+
+            const title = document.createElement("div");
+            title.className = "title";
+
+            const initFirst = data[key]?.title || "";
+            if(initFirst){
+                title.innerText = initFirst;
+                title.style.color = "#FFFFFF";
+                title.style.fontWeight = "700";
+            } else {
+                title.innerText = EMPTY_TEXT;
+                title.style.color = "#6E6E70";
+                title.style.fontWeight = "300";
+            }
+
+            const detail = document.createElement("div");
+            detail.className = "detail";
+
+            const textarea = document.createElement("textarea");
+            textarea.value = data[key]?.detail || "";
+            setTimeout(() => autoResize(textarea), 0);
+
+            textarea.addEventListener("input", async () => {
+                autoResize(textarea);
+
+                const firstLine = textarea.value.split("\n")[0] || "";
+                data[key] = { title:firstLine, detail:textarea.value };
+
+                await saveData(data);
+
+                if(firstLine.trim()){
+                    title.innerText = firstLine;
+                    title.style.color = "#fff";
+                    title.style.fontWeight = "700";
+                } else {
+                    title.innerText = EMPTY_TEXT;
+                    title.style.color = "#6E6E70";
+                    title.style.fontWeight = "300";
+                }
+            });
+
+            textarea.addEventListener("click", e => e.stopPropagation());
+
+            detail.appendChild(textarea);
+            card.appendChild(title);
+            card.appendChild(detail);
+
+            card.addEventListener("click", () => {
+
+                const isActive = card.classList.contains("active");
+
+                document.querySelectorAll(".card").forEach(c=>{
+                    c.classList.remove("active");
+                    c.classList.remove("dimmed");
+                });
+
+                if(!isActive){
+                    card.classList.add("active");
+
+                    document.querySelectorAll(".card").forEach(c=>{
+                        if(c !== card) c.classList.add("dimmed");
+                    });
+
+                    setTimeout(()=>autoResize(textarea),100);
+                }
+            });
+
+            grid.appendChild(card);
+        });
+
+    });
 
 });
 </script>
