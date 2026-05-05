@@ -43,15 +43,25 @@ body {
   align-items: flex-end;
 }
 
+/* 🔥 카드 인터랙션 */
 .card {
   border-top: 0.5px solid #6E6E70;
   padding-top: 6px;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: 
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease;
 }
 
 .card:hover:not(.active) {
   border-top-color: #FFFFFF;
+  transform: translateY(-2px) scale(1.01);
+  opacity: 0.9;
+}
+
+.card:active {
+  transform: scale(0.97);
 }
 
 .card.active.core { border-top-color: #ff6b6b; }
@@ -59,26 +69,41 @@ body {
 .card.active.social { border-top-color: #5ac8fa; }
 .card.active.admin { border-top-color: #a0a0a0; }
 
+/* 🔥 타이틀 */
 .title {
   font-size: 10px;
-  transition: color 0.2s ease, font-weight 0.2s ease;
-  user-select: none; /* 드래그 선택 방지 */
-  -webkit-user-select: none; /* 사파리/크롬 호환 */
-  -moz-user-select: none;    /* 파이어폭스 호환 */
-  -ms-user-select: none;     /* IE 호환 */
+  transition: 
+    color 0.2s ease,
+    font-weight 0.2s ease,
+    transform 0.15s ease,
+    letter-spacing 0.15s ease;
+  user-select: none;
 }
 
+.card.active .title {
+  transform: translateY(-1px);
+  letter-spacing: 0.3px;
+}
+
+/* 🔥 카드 열림 애니메이션 */
 .detail {
   max-height: 0;
+  opacity: 0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transform: translateY(-6px);
+  transition: 
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .card.active .detail {
   max-height: 300px;
-  margin-top: 10px;
+  opacity: 1;
+  transform: translateY(0);
 }
 
+/* textarea */
 textarea {
   width: 100%;
   background: transparent;
@@ -87,6 +112,8 @@ textarea {
   color: #fff;
   font-size: 10px;
   resize: none;
+  padding: 4px 0;
+  line-height: 1.5;
 }
 </style>
 </head>
@@ -103,22 +130,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import { getFirestore, doc, setDoc, getDoc } 
 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-/* 🔥 Firebase 설정 */
+/* Firebase */
 const firebaseConfig = {
-  apiKey: "AIzaSyBf-pfa3u9ckXJe_hYxI8wfpC8p3VGKs5k",
+  apiKey: "AIzaSy...",
   authDomain: "year-planner-2521a.firebaseapp.com",
   projectId: "year-planner-2521a",
-  storageBucket: "year-planner-2521a.firebasestorage.app",
-  messagingSenderId: "972744143802",
-  appId: "1:972744143802:web:24f6083e95c77c3697a383"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const USER_ID = "test_user";
 
-const USER_ID = "test_user"; // 로그인 전 테스트용
-
-/* 데이터 로드/저장 */
+/* 데이터 */
 async function loadData() {
   const ref = doc(db, "users", USER_ID);
   const snap = await getDoc(ref);
@@ -129,7 +152,7 @@ async function saveData(data) {
   await setDoc(doc(db, "users", USER_ID), { data });
 }
 
-/* UI 설정 */
+/* UI */
 const months = ["Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."];
 const categories = ["Core","Social","Growth","Admin"];
 const icons = { Core:"🔥", Social:"👥", Growth:"🌱", Admin:"⚙️" };
@@ -145,8 +168,8 @@ function autoResize(el) {
 /* 실행 */
 loadData().then(data => {
 
-  // 빈칸 + 카테고리 헤더
   grid.appendChild(document.createElement("div"));
+
   categories.forEach(cat => {
     const el = document.createElement("div");
     el.className = "category";
@@ -154,7 +177,6 @@ loadData().then(data => {
     grid.appendChild(el);
   });
 
-  // 각 달 생성
   months.forEach((month, rowIndex) => {
     const m = document.createElement("div");
     m.className = "month";
@@ -163,15 +185,15 @@ loadData().then(data => {
 
     categories.forEach((cat, colIndex) => {
       const key = `${rowIndex}-${colIndex}`;
+
       const card = document.createElement("div");
       card.className = "card " + cat.toLowerCase();
 
       const title = document.createElement("div");
       title.className = "title";
 
-      // 초기 제목 스타일
       const initFirst = data[key]?.title || "";
-      if(initFirst) {
+      if(initFirst){
         title.innerText = initFirst;
         title.style.color = "#FFFFFF";
         title.style.fontWeight = "700";
@@ -188,15 +210,14 @@ loadData().then(data => {
       textarea.value = data[key]?.detail || "";
       setTimeout(() => autoResize(textarea), 0);
 
-      // input 이벤트
-      textarea.addEventListener("input", () => {
+      textarea.addEventListener("input", async () => {
         autoResize(textarea);
         const firstLine = textarea.value.split("\n")[0] || "";
         data[key] = { title:firstLine, detail:textarea.value };
-        saveData(data);
 
-        // 제목 스타일 업데이트
-        if(firstLine && firstLine.trim() !== "") {
+        await saveData(data);
+
+        if(firstLine && firstLine.trim() !== ""){
           title.innerText = firstLine;
           title.style.color = "#FFFFFF";
           title.style.fontWeight = "700";
@@ -213,10 +234,10 @@ loadData().then(data => {
       card.appendChild(title);
       card.appendChild(detail);
 
-      // 클릭 시 활성화
       card.addEventListener("click", () => {
         const isActive = card.classList.contains("active");
         document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
+
         if(!isActive){
           card.classList.add("active");
           setTimeout(()=>autoResize(textarea),100);
