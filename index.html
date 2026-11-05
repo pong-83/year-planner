@@ -32,6 +32,47 @@ body {
     align-items: center;
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* 연도 전환 */
+.year-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.year-label {
+    font-size: 13px;
+    font-weight: 800;
+    min-width: 40px;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.year-label.past {
+    color: #6E6E70;
+}
+
+.year-btn {
+    background: transparent;
+    border: none;
+    color: #6E6E70;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.year-btn:hover {
+    color: #FFFFFF;
+}
+
 /* 전체 보기 버튼 */
 .toggle-all {
     background: transparent;
@@ -199,7 +240,14 @@ textarea {
 
 <div class="header">
     <span>. year planner</span>
-    <button class="toggle-all" id="toggleAll">전체 보기</button>
+    <div class="header-right">
+        <div class="year-nav">
+            <button class="year-btn" id="prevYear" aria-label="이전 해">‹</button>
+            <span class="year-label" id="yearLabel"></span>
+            <button class="year-btn" id="nextYear" aria-label="다음 해">›</button>
+        </div>
+        <button class="toggle-all" id="toggleAll">전체 보기</button>
+    </div>
 </div>
 <div class="container">
     <div class="grid" id="grid"></div>
@@ -220,14 +268,23 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const USER_ID = "test_user";
 
-async function loadData() {
-    const ref = doc(db, "users", USER_ID);
-    const snap = await getDoc(ref);
-    return snap.exists() ? snap.data().data : {};
+// 연도별 저장: 2026년은 기존 "data" 필드 그대로, 이후 해는 "data_2027" 같은 필드에 저장
+const LEGACY_YEAR = 2026;
+
+function fieldFor(year) {
+    return year === LEGACY_YEAR ? "data" : `data_${year}`;
 }
 
-async function saveData(data) {
-    await setDoc(doc(db, "users", USER_ID), { data });
+async function loadData(year) {
+    const ref = doc(db, "users", USER_ID);
+    const snap = await getDoc(ref);
+    if(!snap.exists()) return {};
+    return snap.data()[fieldFor(year)] || {};
+}
+
+async function saveData(year, data) {
+    // merge: 다른 해의 내용은 건드리지 않음
+    await setDoc(doc(db, "users", USER_ID), { [fieldFor(year)]: data }, { merge: true });
 }
 
 const months = ["Jan.","Feb.","Mar.","Apr.","May.","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."];
@@ -242,8 +299,26 @@ function autoResize(el) {
     el.style.height = el.scrollHeight + "px";
 }
 
-loadData().then(data => {
+const THIS_YEAR = new Date().getFullYear();
+const yearLabel = document.getElementById("yearLabel");
+let viewYear = THIS_YEAR;
+let renderToken = 0;
 
+// 마지막으로 보던 해 기억 (이 브라우저에서만)
+try {
+    const saved = parseInt(localStorage.getItem("planner_year"), 10);
+    if(saved) viewYear = saved;
+} catch(e) {}
+
+async function render(year) {
+    const token = ++renderToken;
+    yearLabel.innerText = year;
+    yearLabel.classList.toggle("past", year < THIS_YEAR);
+
+    const data = await loadData(year);
+    if(token !== renderToken) return; // 그 사이 다른 해로 넘어갔으면 무시
+
+    grid.innerHTML = "";
     grid.appendChild(document.createElement("div"));
 
     categories.forEach(cat => {
@@ -253,7 +328,8 @@ loadData().then(data => {
         grid.appendChild(el);
     });
 
-    const currentMonth = new Date().getMonth();
+    // 현재 월 강조는 올해를 볼 때만
+    const currentMonth = year === THIS_YEAR ? new Date().getMonth() : -1;
 
     months.forEach((month, rowIndex) => {
 
@@ -300,7 +376,7 @@ loadData().then(data => {
                 const firstLine = textarea.value.split("\n")[0] || "";
                 data[key] = { title:firstLine, detail:textarea.value };
 
-                await saveData(data);
+                await saveData(year, data);
 
                 if(firstLine.trim()){
                     title.innerText = firstLine;
@@ -347,7 +423,24 @@ loadData().then(data => {
 
     });
 
-});
+    // 전체 보기 켜진 상태로 해를 넘기면 새 카드들도 높이 맞춤
+    if(grid.classList.contains("show-all")){
+        setTimeout(() => {
+            document.querySelectorAll(".card textarea").forEach(autoResize);
+        }, 100);
+    }
+}
+
+function goToYear(year) {
+    viewYear = year;
+    try { localStorage.setItem("planner_year", String(year)); } catch(e) {}
+    render(viewYear);
+}
+
+document.getElementById("prevYear").addEventListener("click", () => goToYear(viewYear - 1));
+document.getElementById("nextYear").addEventListener("click", () => goToYear(viewYear + 1));
+
+render(viewYear);
 
 // 전체 보기 토글
 const toggleBtn = document.getElementById("toggleAll");
