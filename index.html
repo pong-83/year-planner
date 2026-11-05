@@ -32,45 +32,151 @@ body {
     align-items: center;
 }
 
-.header-right {
+/* 스크롤바 숨김 (스크롤은 그대로, 레이아웃 밀림 방지) */
+html, body, .year-drawer {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.year-drawer::-webkit-scrollbar {
+    display: none;
+}
+
+.header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
 }
 
-/* 연도 전환 */
-.year-nav {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    user-select: none;
-}
-
-.year-label {
-    font-size: 13px;
-    font-weight: 800;
-    min-width: 40px;
-    text-align: center;
-    letter-spacing: 0.5px;
-}
-
-.year-label.past {
-    color: #6E6E70;
-}
-
-.year-btn {
+/* 연도 열기 버튼 */
+.year-trigger {
     background: transparent;
     border: none;
-    color: #6E6E70;
-    font-size: 18px;
-    line-height: 1;
-    padding: 2px 6px;
+    color: #A3AAAE;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
     cursor: pointer;
     transition: color 0.2s ease;
 }
 
-.year-btn:hover {
+.year-trigger:hover,
+.year-trigger.open {
     color: #FFFFFF;
+}
+
+.year-trigger .caret {
+    display: inline-block;
+    font-size: 9px;
+    margin-left: 3px;
+    transition: transform 0.2s ease;
+}
+
+.year-trigger.open .caret {
+    transform: rotate(-90deg);
+}
+
+/* 연도 서랍: 위에 덮이므로 그리드가 밀리지 않음 */
+.year-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 10;
+}
+
+.year-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 140px;
+    background: #000;
+    border-right: 0.5px solid #333;
+    padding: 22px 24px 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 11;
+    user-select: none;
+}
+
+body.drawer-open .year-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+body.drawer-open .year-drawer {
+    transform: translateX(0);
+}
+
+.year-item,
+.year-more {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6E6E70;
+    padding: 8px 0;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: color 0.2s ease;
+}
+
+.year-item:hover,
+.year-more:hover {
+    color: #FFFFFF;
+}
+
+.year-item.current {
+    color: #FFFFFF;
+    font-weight: 800;
+}
+
+.year-item.current::before {
+    content: "● ";
+    font-size: 8px;
+    vertical-align: 2px;
+}
+
+.year-item .tag {
+    font-size: 9px;
+    font-weight: 400;
+    margin-left: 6px;
+    color: #6E6E70;
+}
+
+.drawer-close {
+    display: block;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 11px;
+    color: #6E6E70;
+    padding: 4px 0;
+    margin-bottom: 28px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.drawer-close:hover {
+    color: #FFFFFF;
+}
+
+.year-more {
+    font-size: 11px;
+    font-weight: 400;
+    margin-top: 6px;
 }
 
 /* 전체 보기 버튼 */
@@ -239,16 +345,17 @@ textarea {
 <body>
 
 <div class="header">
-    <span>. year planner</span>
-    <div class="header-right">
-        <div class="year-nav">
-            <button class="year-btn" id="prevYear" aria-label="이전 해">‹</button>
-            <span class="year-label" id="yearLabel"></span>
-            <button class="year-btn" id="nextYear" aria-label="다음 해">›</button>
-        </div>
-        <button class="toggle-all" id="toggleAll">전체 보기</button>
+    <div class="header-left">
+        <button class="year-trigger" id="yearTrigger" aria-label="연도 선택">
+            <span id="yearLabel"></span><span class="caret">▾</span>
+        </button>
+        <span>. year planner</span>
     </div>
+    <button class="toggle-all" id="toggleAll">전체 보기</button>
 </div>
+
+<div class="year-backdrop" id="yearBackdrop"></div>
+<nav class="year-drawer" id="yearDrawer" aria-label="연도 목록"></nav>
 <div class="container">
     <div class="grid" id="grid"></div>
 </div>
@@ -282,6 +389,23 @@ async function loadData(year) {
     return snap.data()[fieldFor(year)] || {};
 }
 
+// 내용이 하나라도 있는 해 목록
+async function yearsWithContent() {
+    const snap = await getDoc(doc(db, "users", USER_ID));
+    if(!snap.exists()) return [];
+    const all = snap.data();
+    const years = [];
+    Object.keys(all).forEach(k => {
+        let y = null;
+        if(k === "data") y = LEGACY_YEAR;
+        else if(/^data_\d{4}$/.test(k)) y = parseInt(k.slice(5), 10);
+        if(y === null) return;
+        const hasText = Object.values(all[k] || {}).some(v => (v?.detail || "").trim());
+        if(hasText) years.push(y);
+    });
+    return years;
+}
+
 async function saveData(year, data) {
     // merge: 다른 해의 내용은 건드리지 않음
     await setDoc(doc(db, "users", USER_ID), { [fieldFor(year)]: data }, { merge: true });
@@ -313,7 +437,6 @@ try {
 async function render(year) {
     const token = ++renderToken;
     yearLabel.innerText = year;
-    yearLabel.classList.toggle("past", year < THIS_YEAR);
 
     const data = await loadData(year);
     if(token !== renderToken) return; // 그 사이 다른 해로 넘어갔으면 무시
@@ -437,8 +560,68 @@ function goToYear(year) {
     render(viewYear);
 }
 
-document.getElementById("prevYear").addEventListener("click", () => goToYear(viewYear - 1));
-document.getElementById("nextYear").addEventListener("click", () => goToYear(viewYear + 1));
+// 연도 서랍
+const yearTrigger = document.getElementById("yearTrigger");
+const yearDrawer = document.getElementById("yearDrawer");
+const yearBackdrop = document.getElementById("yearBackdrop");
+const VISIBLE_YEARS = 5;
+
+function yearButton(y) {
+    const b = document.createElement("button");
+    b.className = "year-item" + (y === viewYear ? " current" : "");
+    b.innerHTML = y + (y === THIS_YEAR ? '<span class="tag">올해</span>' : "");
+    b.addEventListener("click", () => {
+        closeDrawer();
+        if(y !== viewYear) goToYear(y);
+    });
+    return b;
+}
+
+async function fillDrawer() {
+    // 내용 있는 해 + 올해 + 내년 + 지금 보는 해, 최신순
+    const set = new Set(await yearsWithContent());
+    set.add(THIS_YEAR);
+    set.add(THIS_YEAR + 1);
+    set.add(viewYear);
+    const years = [...set].sort((a, b) => b - a);
+
+    yearDrawer.innerHTML = "";
+    const close = document.createElement("button");
+    close.className = "drawer-close";
+    close.innerText = "◂ 닫기";
+    close.addEventListener("click", closeDrawer);
+    yearDrawer.appendChild(close);
+    years.slice(0, VISIBLE_YEARS).forEach(y => yearDrawer.appendChild(yearButton(y)));
+
+    const rest = years.slice(VISIBLE_YEARS);
+    if(rest.length){
+        const more = document.createElement("button");
+        more.className = "year-more";
+        more.innerText = `이전 ▾ (${rest.length})`;
+        more.addEventListener("click", () => {
+            more.remove();
+            rest.forEach(y => yearDrawer.appendChild(yearButton(y)));
+        });
+        yearDrawer.appendChild(more);
+    }
+}
+
+function openDrawer() {
+    document.body.classList.add("drawer-open");
+    yearTrigger.classList.add("open");
+    fillDrawer();
+}
+
+function closeDrawer() {
+    document.body.classList.remove("drawer-open");
+    yearTrigger.classList.remove("open");
+}
+
+yearTrigger.addEventListener("click", () => {
+    document.body.classList.contains("drawer-open") ? closeDrawer() : openDrawer();
+});
+yearBackdrop.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeDrawer(); });
 
 render(viewYear);
 
