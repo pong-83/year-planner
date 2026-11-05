@@ -425,14 +425,8 @@ function autoResize(el) {
 
 const THIS_YEAR = new Date().getFullYear();
 const yearLabel = document.getElementById("yearLabel");
-let viewYear = THIS_YEAR;
+let viewYear = THIS_YEAR; // 항상 올해로 열림
 let renderToken = 0;
-
-// 마지막으로 보던 해 기억 (이 브라우저에서만)
-try {
-    const saved = parseInt(localStorage.getItem("planner_year"), 10);
-    if(saved) viewYear = saved;
-} catch(e) {}
 
 async function render(year) {
     const token = ++renderToken;
@@ -556,7 +550,6 @@ async function render(year) {
 
 function goToYear(year) {
     viewYear = year;
-    try { localStorage.setItem("planner_year", String(year)); } catch(e) {}
     render(viewYear);
 }
 
