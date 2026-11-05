@@ -5,6 +5,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pong Year Planner</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23000'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='22' font-weight='800' fill='%23fff' letter-spacing='-1'%3E.y%3C/text%3E%3C/svg%3E" />
 
 <style>
 body {
@@ -26,6 +27,33 @@ body {
     padding: 20px;
     font-size: 20px;
     font-weight: 800;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 전체 보기 버튼 */
+.toggle-all {
+    background: transparent;
+    border: 1px solid #6E6E70;
+    color: #A3AAAE;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.toggle-all:hover {
+    border-color: #FFFFFF;
+    color: #FFFFFF;
+}
+
+.toggle-all.on {
+    border-color: #FFFFFF;
+    color: #000;
+    background: #FFFFFF;
 }
 
 .container {
@@ -137,6 +165,28 @@ textarea {
     line-height: 1.5;
 }
 
+/* 전체 보기 모드: 모든 카드 펼침 */
+.grid.show-all .card {
+    cursor: default;
+}
+
+.grid.show-all .card:hover,
+.grid.show-all .card:active {
+    transform: none;
+    opacity: 1;
+}
+
+.grid.show-all .detail {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.grid.show-all .card.core { border-top-color: #ff6b6b; }
+.grid.show-all .card.growth { border-top-color: #4cd964; }
+.grid.show-all .card.social { border-top-color: #5ac8fa; }
+.grid.show-all .card.admin { border-top-color: #a0a0a0; }
+
 /* 현재 월 텍스트 강조 */
 .month.today {
     color: #FFFFFF;
@@ -147,7 +197,10 @@ textarea {
 
 <body>
 
-<div class="header">. year planner</div>
+<div class="header">
+    <span>. year planner</span>
+    <button class="toggle-all" id="toggleAll">전체 보기</button>
+</div>
 <div class="container">
     <div class="grid" id="grid"></div>
 </div>
@@ -268,6 +321,9 @@ loadData().then(data => {
 
             card.addEventListener("click", () => {
 
+                // 전체 보기 중에는 개별 펼치기 동작 안 함
+                if(grid.classList.contains("show-all")) return;
+
                 const isActive = card.classList.contains("active");
 
                 document.querySelectorAll(".card").forEach(c=>{
@@ -291,6 +347,28 @@ loadData().then(data => {
 
     });
 
+});
+
+// 전체 보기 토글
+const toggleBtn = document.getElementById("toggleAll");
+
+toggleBtn.addEventListener("click", () => {
+    const on = grid.classList.toggle("show-all");
+
+    toggleBtn.classList.toggle("on", on);
+    toggleBtn.innerText = on ? "접기" : "전체 보기";
+
+    // 개별로 열려 있던 카드 상태 초기화
+    document.querySelectorAll(".card").forEach(c => {
+        c.classList.remove("active");
+        c.classList.remove("dimmed");
+    });
+
+    if(on){
+        setTimeout(() => {
+            document.querySelectorAll(".card textarea").forEach(autoResize);
+        }, 100);
+    }
 });
 </script>
 
